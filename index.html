@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fa">
+  <title>Simple Search</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 780px; margin: 0 auto; padding: 56px 20px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f8fa; color: #202124;
+    }
+    header { text-align: center; margin-bottom: 28px; }
+    h1 { margin-bottom: 8px; letter-spacing: -0.04em; }
+    .subtitle { color: #626a73; margin-top: 0; }
+    form { display: flex; gap: 8px; }
+    input {
+      flex: 1; min-width: 0; padding: 14px 16px;
+      border: 1px solid #ccd1d8; border-radius: 14px; font-size: 16px;
+      background: white;
+    }
+    input:focus { outline: 2px solid #9db8ff; border-color: #2457d6; }
+    button {
+      padding: 12px 18px; border: 0; border-radius: 14px;
+      background: #2457d6; color: white; font-size: 16px; cursor: pointer;
+    }
+    button:disabled { opacity: .65; cursor: wait; }
+    #status { margin: 22px 2px 14px; color: #59616b; }
+    article {
+      margin: 12px 0; padding: 18px; border: 1px solid #e7e9ee;
+      border-radius: 14px; background: white; overflow-wrap: anywhere;
+    }
+    article a { color: #174ea6; font-size: 18px; font-weight: 650; text-decoration: none; }
+    article a:hover { text-decoration: underline; }
+    article p { margin-bottom: 0; line-height: 1.65; color: #4d555e; }
+    footer { margin-top: 30px; color: #737b84; font-size: 12px; line-height: 1.6; }
+    @media (max-width: 480px) {
+      body { padding: 34px 14px; }
+      form { gap: 6px; }
+      button { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Simple Search</h1>
+    <p class="subtitle">간단하고 깔끔한 웹 검색</p>
+  </header>
+
+  <form id="searchForm">
+    <input id="query" placeholder="검색어를 입력하세요" maxlength="200" required autocomplete="off">
+    <button id="searchButton" type="submit">검색</button>
+  </form>
+
+  <p id="status" role="status" aria-live="polite">검색어를 입력해 보세요.</p>
+  <main id="results"></main>
+
+  <footer>
+    검색 결과는 외부 검색 API에서 제공됩니다. 이 사이트는 검색 결과 링크를 보여주며,
+    원본 사이트의 로그인이나 접근 제한을 해제하지 않습니다.
+  </footer>
+
+  <script>
+    const form = document.getElementById("searchForm");
+    const query = document.getElementById("query");
+    const results = document.getElementById("results");
+    const status = document.getElementById("status");
+    const button = document.getElementById("searchButton");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const q = query.value.trim();
+      if (!q) return;
+
+      results.replaceChildren();
+      status.textContent = "검색 중...";
+      button.disabled = true;
+
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || "검색에 실패했습니다.");
+
+        if (!data.results.length) {
+          status.textContent = "검색 결과가 없습니다.";
+          return;
+        }
+
+        status.textContent = `${data.results.length}개의 검색 결과`;
+
+        for (const item of data.results) {
+          const article = document.createElement("article");
+          const link = document.createElement("a");
+          const description = document.createElement("p");
+
+          link.textContent = item.title;
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          description.textContent = item.description;
+
+          article.append(link, description);
+          results.append(article);
+        }
+      } catch (error) {
+        status.textContent = error.message || "오류가 발생했습니다.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
